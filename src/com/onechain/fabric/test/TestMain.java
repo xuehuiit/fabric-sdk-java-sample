@@ -7,15 +7,18 @@ package com.onechain.fabric.test;
 import static java.lang.String.format;
 
 import java.io.File;
+import java.net.MalformedURLException;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
+import org.hyperledger.fabric.sdk.BlockInfo;
 import org.hyperledger.fabric.sdk.ChaincodeID;
 import org.hyperledger.fabric.sdk.ChaincodeResponse;
 import org.hyperledger.fabric.sdk.ChaincodeResponse.Status;
 import org.hyperledger.fabric.sdk.Channel;
+import org.hyperledger.fabric.sdk.Enrollment;
 import org.hyperledger.fabric.sdk.HFClient;
 import org.hyperledger.fabric.sdk.Orderer;
 import org.hyperledger.fabric.sdk.Peer;
@@ -23,13 +26,19 @@ import org.hyperledger.fabric.sdk.ProposalResponse;
 import org.hyperledger.fabric.sdk.TestConfigHelper;
 import org.hyperledger.fabric.sdk.TransactionProposalRequest;
 import org.hyperledger.fabric.sdk.User;
+import org.hyperledger.fabric.sdk.exception.CryptoException;
+import org.hyperledger.fabric.sdk.exception.InvalidArgumentException;
 import org.hyperledger.fabric.sdk.exception.ProposalException;
+import org.hyperledger.fabric.sdk.exception.TransactionException;
 import org.hyperledger.fabric.sdk.security.CryptoSuite;
 import org.hyperledger.fabric.sdk.testutils.TestConfig;
 import org.hyperledger.fabric.sdkintegration.SampleOrg;
 import org.hyperledger.fabric.sdkintegration.SampleStore;
 import org.hyperledger.fabric.sdkintegration.SampleUser;
 import org.hyperledger.fabric_ca.sdk.HFCAClient;
+import org.hyperledger.fabric_ca.sdk.exception.EnrollmentException;
+
+import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
  * @author fengxiang
@@ -49,7 +58,9 @@ public class TestMain {
 	 */
 	public static void main(String[] args) {
 		 //peerTest();
-		 testPeer();
+		//peerTest();
+		testnew();
+	
 	}
 	
 	
@@ -66,6 +77,79 @@ public class TestMain {
 		
 	}
 	
+	public static void testnew(){
+		
+		
+		
+		
+        try {
+        	
+        	HFClient hfclient = HFClient.createNewInstance();
+        	
+        	CryptoSuite cryptosuite= CryptoSuite.Factory.getCryptoSuite();
+        	
+        	cryptosuite.init();
+        	//cryptosuite.
+        	
+			hfclient.setCryptoSuite(cryptosuite);
+			HFCAClient caclient = HFCAClient.createNewInstance( "http://localhost:7054",null  );
+			
+						
+			
+			caclient.setCryptoSuite(cryptosuite);
+			Enrollment enrollment = caclient.enroll(  "admin"  ,  "adminpw"  );
+			
+			  
+			File sampleStoreFile = new File(System.getProperty("user.home") + "/HFCSampletest.properties");
+			if (sampleStoreFile.exists()) { // For testing start fresh
+			    sampleStoreFile.delete();
+			}
+			SampleStore sampleStore = new SampleStore(sampleStoreFile);
+			SampleUser admin = sampleStore.getMember("admin","org1");
+			admin.setMspId("Org1MSP");
+			
+			admin.setEnrollment(enrollment);
+			
+			hfclient.setUserContext(admin);
+			
+			testchannel = hfclient.newChannel("mychannel");
+						
+			Peer peer = hfclient.newPeer( "peertest", "grpc://localhost:7051");
+			Orderer order = hfclient.newOrderer("order", "grpc://localhost:7050");
+			testchannel.addPeer( peer );
+			testchannel.addOrderer(order);
+
+			testchannel.initialize();
+
+			
+			BlockInfo blockinfo= testchannel.queryBlockByNumber(2);
+			
+			System.out.println(blockinfo.getBlock().toString());
+			
+			
+		} catch (CryptoException | InvalidArgumentException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (EnrollmentException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (org.hyperledger.fabric_ca.sdk.exception.InvalidArgumentException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ProposalException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (TransactionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+
+		
+		
+	}
 	
 	
 	public static HFClient newInstance() throws Exception {
@@ -155,7 +239,7 @@ public class TestMain {
 	        }
 			
 			
-	        hfclient1.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
+	        //hfclient1.setCryptoSuite(CryptoSuite.Factory.getCryptoSuite());
 
 	        
 			Peer peer = hfclient1.newPeer( "peertest", "grpc://localhost:7051");
@@ -181,10 +265,14 @@ public class TestMain {
 			ordererProperties.put("grpc.NettyChannelBuilderOption.keepAliveTimeout", new Object[] {8L, TimeUnit.SECONDS});
 
 
-			Orderer order = hfclient1.newOrderer("order", "grpc://localhost:7050",ordererProperties);
+			Orderer order = hfclient1.newOrderer("order", "grpc://localhost:7050");
 
 			
 			testchannel.addOrderer(order);
+			
+			
+			BlockInfo blockinfo= testchannel.queryBlockByNumber(2);
+		
 			
           
 			String moveAmount = "10";
@@ -192,60 +280,60 @@ public class TestMain {
 			User user = null;
 			
 			//testchannel.queryByChaincode(queryByChaincodeRequest)
-			try {
-	            Collection<ProposalResponse> successful = new LinkedList<>();
-	            Collection<ProposalResponse> failed = new LinkedList<>();
-
-	            
-	            ChaincodeID chaincodeID = ChaincodeID.newBuilder().setName("dddd")
-	                    .setVersion("11")
-	                    .setPath("dddddd").build();
-	            
-	            ///////////////
-	            /// Send transaction proposal to all peers
-	            TransactionProposalRequest transactionProposalRequest = hfclient1.newTransactionProposalRequest();
-	            transactionProposalRequest.setChaincodeID(chaincodeID);
-	            transactionProposalRequest.setFcn("invoke");
-	            transactionProposalRequest.setArgs(new String[] {"move", "a", "b", "11"});
-	            transactionProposalRequest.setProposalWaitTime(5000);
-	            if (user != null) { // specific user use that
-	                transactionProposalRequest.setUserContext(user);
-	            }
-	            out("sending transaction proposal to all peers with arguments: move(a,b,%s)", moveAmount);
-
-	            Collection<ProposalResponse> invokePropResp = testchannel.sendTransactionProposal(transactionProposalRequest);
-	            for (ProposalResponse response : invokePropResp) {
-	                if (response.getStatus() == Status.SUCCESS) {
-	                	out("Successful transaction proposal response Txid: %s from peer %s", response.getTransactionID(), response.getPeer().getName());
-	                    successful.add(response);
-	                } else {
-	                    failed.add(response);
-	                }
-	            }
-
-	            out("Received %d transaction proposal responses. Successful+verified: %d . Failed: %d",
-	                    invokePropResp.size(), successful.size(), failed.size());
-	            if (failed.size() > 0) {
-	                ProposalResponse firstTransactionProposalResponse = failed.iterator().next();
-
-	                throw new ProposalException(format("Not enough endorsers for invoke(move a,b,%s):%d endorser error:%s. Was verified:%b",
-	                        moveAmount, firstTransactionProposalResponse.getStatus().getStatus(), firstTransactionProposalResponse.getMessage(), firstTransactionProposalResponse.isVerified()));
-
-	            }
-	            System.out.println("Successfully received transaction proposal responses.");
-
-	            ////////////////////////////
-	            // Send transaction to orderer
-	            out("Sending chaincode transaction(move a,b,%s) to orderer.", moveAmount);
-	            if (user != null) {
-	                 testchannel.sendTransaction(successful, user);
-	            }
-	             testchannel.sendTransaction(successful);
-	        } catch (Exception e) {
-
-	            e.printStackTrace();
-
-	        }
+//			try {
+//	            Collection<ProposalResponse> successful = new LinkedList<>();
+//	            Collection<ProposalResponse> failed = new LinkedList<>();
+//
+//	            
+//	            ChaincodeID chaincodeID = ChaincodeID.newBuilder().setName("dddd")
+//	                    .setVersion("11")
+//	                    .setPath("dddddd").build();
+//	            
+//	            ///////////////
+//	            /// Send transaction proposal to all peers
+//	            TransactionProposalRequest transactionProposalRequest = hfclient1.newTransactionProposalRequest();
+//	            transactionProposalRequest.setChaincodeID(chaincodeID);
+//	            transactionProposalRequest.setFcn("invoke");
+//	            transactionProposalRequest.setArgs(new String[] {"move", "a", "b", "11"});
+//	            transactionProposalRequest.setProposalWaitTime(5000);
+//	            if (user != null) { // specific user use that
+//	                transactionProposalRequest.setUserContext(user);
+//	            }
+//	            out("sending transaction proposal to all peers with arguments: move(a,b,%s)", moveAmount);
+//
+//	            Collection<ProposalResponse> invokePropResp = testchannel.sendTransactionProposal(transactionProposalRequest);
+//	            for (ProposalResponse response : invokePropResp) {
+//	                if (response.getStatus() == Status.SUCCESS) {
+//	                	out("Successful transaction proposal response Txid: %s from peer %s", response.getTransactionID(), response.getPeer().getName());
+//	                    successful.add(response);
+//	                } else {
+//	                    failed.add(response);
+//	                }
+//	            }
+//
+//	            out("Received %d transaction proposal responses. Successful+verified: %d . Failed: %d",
+//	                    invokePropResp.size(), successful.size(), failed.size());
+//	            if (failed.size() > 0) {
+//	                ProposalResponse firstTransactionProposalResponse = failed.iterator().next();
+//
+//	                throw new ProposalException(format("Not enough endorsers for invoke(move a,b,%s):%d endorser error:%s. Was verified:%b",
+//	                        moveAmount, firstTransactionProposalResponse.getStatus().getStatus(), firstTransactionProposalResponse.getMessage(), firstTransactionProposalResponse.isVerified()));
+//
+//	            }
+//	            System.out.println("Successfully received transaction proposal responses.");
+//
+//	            ////////////////////////////
+//	            // Send transaction to orderer
+//	            out("Sending chaincode transaction(move a,b,%s) to orderer.", moveAmount);
+//	            if (user != null) {
+//	                 testchannel.sendTransaction(successful, user);
+//	            }
+//	             testchannel.sendTransaction(successful);
+//	        } catch (Exception e) {
+//
+//	            e.printStackTrace();
+//
+//	        }
 
 			
 			
