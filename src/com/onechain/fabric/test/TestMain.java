@@ -7,7 +7,12 @@ package com.onechain.fabric.test;
 import static java.lang.String.format;
 
 import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Properties;
@@ -59,27 +64,142 @@ public class TestMain {
 	public static void main(String[] args) {
 		 //peerTest();
 		//peerTest();
-		testnew();
+		//channelTest();
+		//System.setProperty("org.hyperledger.fabric.sdk.configuration", "/project/javaworkspace/fabric-sdk-java-sample/src/org/hyperledger/fabric/sdk/configuration/config.properties");
+		channelTest1();
+		
 	
+	}
+	
+	/**
+	 * 
+	 * 账本相关的操作演示(不通过CA获取相关文件的演示)
+	 * 
+	 */
+	public static void channelTest1(){
+		
+		
+        try {
+        	
+        	
+        	//System.out.println(System.getProperty("org.hyperledger.fabric.sdk.configuration", "config.properties"));
+        	
+//        	Properties sdkProperties = new Properties();
+//        	sdkProperties.put("org.hyperledger.fabric.sdk.orderer.ordererWaitTimeMilliSecs", "4000000");
+//        	
+        	
+        	HFClient hfclient = HFClient.createNewInstance();
+        	
+        	CryptoSuite cryptosuite= CryptoSuite.Factory.getCryptoSuite();
+        	
+        	//cryptosuite.setProperties(sdkProperties);
+        	
+        	
+        	
+        	//cryptosuite.
+        	
+        	hfclient.setCryptoSuite(cryptosuite);
+        	
+			
+			  
+			File sampleStoreFile = new File(System.getProperty("user.home") + "/HFCSampletest.properties");
+			if (sampleStoreFile.exists()) { // For testing start fresh
+			    sampleStoreFile.delete();
+			}
+			SampleStore sampleStore = new SampleStore(sampleStoreFile);
+			
+			
+			SampleUser admin = sampleStore.getMember( 
+					"Admin",
+					"org1",
+					"Org1MSP", 
+					findFileSk("/project/opt_fabric/fabricconfig/crypto-config/peerOrganizations/org1.robertfabrictest.com/users/Admin@org1.robertfabrictest.com/msp/keystore"),
+					 new File("/project/opt_fabric/fabricconfig/crypto-config/peerOrganizations/org1.robertfabrictest.com/users/Admin@org1.robertfabrictest.com/msp/signcerts/Admin@org1.robertfabrictest.com-cert.pem"));
+			
+			
+			hfclient.setUserContext(admin);
+			
+			
+			
+			testchannel = hfclient.newChannel("roberttestchannel");
+						
+			
+			Peer peer = hfclient.newPeer( "peer0", "grpc://192.168.23.212:7051");
+			
+			//如果采用加密的方式，建议采用这样的访问写法  
+//			Properties peerproperties = new Properties();
+//			peerproperties.put("pemFile", "/project/opt_fabric/fabricconfig/crypto-config/peerOrganizations/org1.robertfabrictest.com/users/Admin@org1.robertfabrictest.com/tls/server.crt");
+//			Peer peer = hfclient.newPeer( "peer0", "grpc://192.168.23.212:7051",peerproperties);
+//			
+			Orderer order = hfclient.newOrderer( "orderer" , "grpc://192.168.23.212:7050" );
+			
+			
+			testchannel.addPeer( peer );
+			testchannel.addOrderer(order);
+			
+		    
+			
+			testchannel.initialize();
+
+			
+			BlockInfo blockinfo= testchannel.queryBlockByNumber(1);
+			
+			System.out.println(blockinfo.getBlock().toBuilder().toString());
+			
+			
+		} catch (CryptoException | InvalidArgumentException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}  catch (ProposalException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (TransactionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchProviderException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidKeySpecException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InstantiationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchMethodException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+
+		
+		
 	}
 	
 	
 	
-	public static void testPeer(){
-		
-		System.out.println(System.getProperty("user.home"));
-		
-	}
-	
-	
-	public static  void testclient(){
-		
-		
-	}
-	
-	public static void testnew(){
-		
-		
+	/**
+	 * 
+	 * 账本相关的操作演示
+	 * 
+	 */
+	public static void channelTest(){
 		
 		
         try {
@@ -88,7 +208,7 @@ public class TestMain {
         	
         	CryptoSuite cryptosuite= CryptoSuite.Factory.getCryptoSuite();
         	
-        	cryptosuite.init();
+        	//cryptosuite.init();
         	//cryptosuite.
         	
 			hfclient.setCryptoSuite(cryptosuite);
@@ -108,9 +228,14 @@ public class TestMain {
 			SampleUser admin = sampleStore.getMember("admin","org1");
 			admin.setMspId("Org1MSP");
 			
+			//admin.setAffiliation(affiliation);
+			
+			
 			admin.setEnrollment(enrollment);
 			
 			hfclient.setUserContext(admin);
+			
+			
 			
 			testchannel = hfclient.newChannel("mychannel");
 						
@@ -124,7 +249,7 @@ public class TestMain {
 			
 			BlockInfo blockinfo= testchannel.queryBlockByNumber(2);
 			
-			System.out.println(blockinfo.getBlock().toString());
+			System.out.println(blockinfo.getBlock().getMetadata().getMetadata(0).toString());
 			
 			
 		} catch (CryptoException | InvalidArgumentException e) {
@@ -145,11 +270,43 @@ public class TestMain {
 		} catch (TransactionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InstantiationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchMethodException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvocationTargetException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		} 
 
 		
 		
 	}
+	
+	
+	
+	
+	public static void testPeer(){
+		
+		System.out.println(System.getProperty("user.home"));
+		
+		
+	}
+	
+	
+	public static  void testclient(){
+		
+		
+	}
+	
 	
 	
 	public static HFClient newInstance() throws Exception {
@@ -182,10 +339,16 @@ public class TestMain {
 
         return hfclient;
 
-    }
+    } 
 
 	
-	static File findFileSk(String directorys) {
+	
+	
+	/////////////////////////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	
+	private static File findFileSk(String directorys) {
 
         File directory = new File(directorys);
 

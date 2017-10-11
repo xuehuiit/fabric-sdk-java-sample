@@ -101,7 +101,7 @@ public class FabricCATestMain {
 		
 		 //out("\n\n\nRUNNING: HFCAClientEnrollIT.\n");
 			crypto = CryptoSuite.Factory.getCryptoSuite();
-		    crypto.init();
+		    //crypto.init();
 		     
 		     
 		     
